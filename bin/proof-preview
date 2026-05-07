@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_path="$(realpath -- "${BASH_SOURCE[0]}")"
+project_dir="$(cd -- "$(dirname -- "${script_path}")/.." && pwd)"
+current_file="${PROOF_PREVIEW_CURRENT:-${project_dir}/current-proof.js}"
+view="${PROOF_PREVIEW_VIEW:-full}"
+open_view=1
+cleanup=0
+source_file=""
+source_text=""
+stdin_text=""
+
+usage() {
+  printf '%s\n' \
+    "Usage:" \
+    "  proof-preview                   Open the current proof view." \
+    "  proof-preview FILE              Save FILE as the current proof, then open it." \
+    "  proof-preview 'proof text'      Save the argument text, then open it." \
+    "  command | proof-preview         Save stdin as the current proof, then open it." \
+    "  proof-preview --no-open FILE    Save proof text and print the link only." \
+    "  proof-preview --small FILE      Use the compact narrow view." \
+    "  proof-preview --cleanup         Clear the current proof slot." \
+    "" \
+    "Current view:" \
+    "  $(viewer_url)"
+}
+
+viewer_url() {
+  if [[ "${view}" == "full" ]]; then
+    printf 'file://%s/index.html' "${project_dir}"
+  else
+    printf 'file://%s/index.html?view=%s' "${project_dir}" "${view}"
+  fi
+}
+
+write_current_proof() {
+  node -e '
+const fs = require("fs");
+const target = process.argv[1];
+let source = "";
+
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", chunk => {
+  source += chunk;
+});
+process.stdin.on("end", () => {
+  fs.writeFileSync(
+    target,
+    "window.__proofPreviewCurrentProof = " + JSON.stringify(source) + ";\n",
+    "utf8"
+  );
+});
+' "${current_file}"
+}
+
+while (($#)); do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --no-open)
+      open_view=0
+      shift
+      ;;
+    --small)
+      view="small"
+      shift
+      ;;
+    --full)
+      view="full"
+      shift
+      ;;
+    --cleanup)
+      cleanup=1
+      shift
+      ;;
+    --)
+      shift
+      source_text="$*"
+      break
+      ;;
+    *)
+      if [[ -z "${source_file}" && -f "$1" ]]; then
+        source_file="$1"
+      else
+        if [[ -n "${source_text}" ]]; then
+          source_text+=" "
+        fi
+        source_text+="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+if ((cleanup)); then
+  printf '' | write_current_proof
+  printf 'Cleared %s\n' "${current_file}"
+  printf '%s\n' "$(viewer_url)"
+  exit 0
+fi
+
+if [[ -n "${source_file}" ]]; then
+  write_current_proof < "${source_file}"
+elif [[ -n "${source_text}" ]]; then
+  printf '%s\n' "${source_text}" | write_current_proof
+elif [[ ! -t 0 ]]; then
+  stdin_text="$(cat)"
+  if [[ -n "${stdin_text}" ]]; then
+    printf '%s' "${stdin_text}" | write_current_proof
+  fi
+fi
+
+url="$(viewer_url)"
+printf '%s\n' "${url}"
+
+if ((open_view)); then
+  xdg-open "${url}" >/dev/null 2>&1 &
+fi

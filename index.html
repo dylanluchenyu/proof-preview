@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proof Preview</title>
+  <link rel="stylesheet" href="./vendor/katex/katex.min.css">
+  <script
+    id="katex-loader"
+    src="./vendor/katex/katex.min.js"
+    onload="window.__proofPreviewKatexLoaded = true"
+    onerror="window.__proofPreviewKatexFailed = true">
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f4ef;
+      --panel: #ffffff;
+      --panel-soft: #f9faf7;
+      --ink: #1e2722;
+      --muted: #68706b;
+      --line: #d8ddd6;
+      --accent: #24745a;
+      --accent-ink: #ffffff;
+      --warn: #a9482b;
+      --shadow: 0 10px 30px rgba(30, 39, 34, 0.09);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100%;
+    }
+
+    .topbar {
+      align-items: center;
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 12px;
+      min-height: 58px;
+      padding: 10px 18px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .title {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 180px;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 720;
+      line-height: 1.15;
+      margin: 0;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 17px;
+    }
+
+    .status.is-error {
+      color: var(--warn);
+    }
+
+    .actions {
+      display: flex;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .button {
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 14px;
+      font-weight: 650;
+      gap: 7px;
+      height: 38px;
+      justify-content: center;
+      line-height: 1;
+      min-width: 84px;
+      padding: 0 12px;
+    }
+
+    .button:hover {
+      border-color: #9fb5ab;
+      color: #153b2f;
+    }
+
+    .button:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(36, 116, 90, 0.25);
+      outline-offset: 2px;
+    }
+
+    .button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    .workspace {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      min-height: 0;
+      padding: 16px;
+    }
+
+    .workspace.preview-wide {
+      grid-template-columns: minmax(280px, 0.74fr) minmax(360px, 1.26fr);
+    }
+
+    body.small-screen {
+      background: #e9ebe6;
+    }
+
+    body.small-screen .topbar {
+      margin: 0 auto;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    body.small-screen .actions .button:not(#compactButton):not(#copyButton) {
+      display: none;
+    }
+
+    body.small-screen .workspace,
+    body.small-screen .workspace.preview-wide {
+      display: block;
+      margin: 0 auto;
+      max-width: 520px;
+      padding: 12px;
+      width: 100%;
+    }
+
+    body.small-screen .workspace > .pane:first-child {
+      display: none;
+    }
+
+    body.small-screen .pane {
+      min-height: calc(100vh - 82px);
+    }
+
+    body.small-screen .preview-shell {
+      max-height: calc(100vh - 126px);
+    }
+
+    body.small-screen .preview {
+      font-size: 16px;
+      line-height: 1.5;
+      max-width: 100%;
+      padding: 18px 18px 28px;
+    }
+
+    body.small-screen .preview h2 {
+      font-size: 21px;
+    }
+
+    body.small-screen .preview h3 {
+      font-size: 17px;
+    }
+
+    body.small-screen .preview h4 {
+      font-size: 15px;
+    }
+
+    body.full-screen {
+      background: var(--panel);
+    }
+
+    body.full-screen .topbar {
+      display: none;
+    }
+
+    body.full-screen .workspace,
+    body.full-screen .workspace.preview-wide {
+      display: block;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    body.full-screen .workspace > .pane:first-child,
+    body.full-screen .pane-header {
+      display: none;
+    }
+
+    body.full-screen .pane {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      min-height: 100vh;
+    }
+
+    body.full-screen .preview-shell {
+      max-height: 100vh;
+    }
+
+    body.full-screen .preview {
+      font-size: 22px;
+      line-height: 1.72;
+      max-width: 1050px;
+      padding: 48px 72px 80px;
+    }
+
+    body.full-screen .preview h2 {
+      font-size: 34px;
+    }
+
+    body.full-screen .preview h3 {
+      font-size: 25px;
+    }
+
+    body.full-screen .preview h4 {
+      font-size: 20px;
+    }
+
+    .pane {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .pane-header {
+      align-items: center;
+      background: var(--panel-soft);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      min-height: 44px;
+      padding: 0 14px;
+    }
+
+    .pane-title {
+      color: #344039;
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    textarea {
+      background: #fcfcfa;
+      border: 0;
+      color: #202620;
+      min-height: 0;
+      outline: none;
+      padding: 18px;
+      resize: none;
+      tab-size: 2;
+      width: 100%;
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .preview-shell {
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .preview {
+      font-family: var(--serif);
+      font-size: 19px;
+      line-height: 1.68;
+      margin: 0 auto;
+      max-width: 850px;
+      padding: 28px 34px 52px;
+    }
+
+    .preview h2,
+    .preview h3,
+    .preview h4 {
+      color: #19231d;
+      font-family: var(--sans);
+      letter-spacing: 0;
+      line-height: 1.25;
+      margin: 1.35em 0 0.55em;
+    }
+
+    .preview h2:first-child,
+    .preview h3:first-child,
+    .preview h4:first-child {
+      margin-top: 0;
+    }
+
+    .preview h2 {
+      font-size: 26px;
+    }
+
+    .preview h3 {
+      font-size: 20px;
+    }
+
+    .preview h4 {
+      font-size: 17px;
+    }
+
+    .preview p {
+      margin: 0 0 1em;
+    }
+
+    .preview ul,
+    .preview ol {
+      margin: 0 0 1em 1.25em;
+      padding: 0;
+    }
+
+    .preview li {
+      margin: 0.25em 0;
+      padding-left: 0.25em;
+    }
+
+    .preview blockquote {
+      border-left: 4px solid #8aa89a;
+      color: #35423b;
+      margin: 0 0 1em;
+      padding: 0.2em 0 0.2em 1em;
+    }
+
+    .preview .math-block {
+      margin: 1.15em 0;
+      overflow-x: auto;
+      padding: 0.25em 0;
+    }
+
+    .preview .math-error {
+      color: var(--warn);
+      font-family: var(--mono);
+      font-size: 0.88em;
+    }
+
+    .preview code {
+      background: #eef1ec;
+      border: 1px solid #dfe5dd;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.86em;
+      padding: 0.05em 0.28em;
+    }
+
+    .empty {
+      align-items: center;
+      color: var(--muted);
+      display: flex;
+      font-family: var(--sans);
+      font-size: 15px;
+      justify-content: center;
+      min-height: 260px;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .actions {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .button {
+        flex: 1 1 120px;
+      }
+
+      .workspace,
+      .workspace.preview-wide {
+        grid-template-columns: 1fr;
+      }
+
+      .pane {
+        min-height: 52vh;
+      }
+
+      .preview {
+        font-size: 18px;
+        padding: 22px 20px 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title">
+        <h1>Proof Preview</h1>
+        <div id="status" class="status">KaTeX loading</div>
+      </div>
+      <div class="actions" aria-label="Editor actions">
+        <button id="sampleButton" class="button" type="button">Sample</button>
+        <button id="clearButton" class="button" type="button">Clear</button>
+        <button id="copyButton" class="button" type="button">Copy</button>
+        <button id="compactButton" class="button" type="button" aria-pressed="false">Small Screen</button>
+        <button id="layoutButton" class="button primary" type="button" aria-pressed="false">Wide Preview</button>
+      </div>
+    </header>
+
+    <section id="workspace" class="workspace">
+      <section class="pane" aria-labelledby="source-title">
+        <div class="pane-header">
+          <div id="source-title" class="pane-title">Source</div>
+          <div id="counter" class="counter">0 chars</div>
+        </div>
+        <textarea id="editor" spellcheck="false" aria-label="Proof source"></textarea>
+      </section>
+
+      <section class="pane" aria-labelledby="preview-title">
+        <div class="pane-header">
+          <div id="preview-title" class="pane-title">Preview</div>
+          <div id="renderStatus" class="counter">Ready</div>
+        </div>
+        <div class="preview-shell">
+          <article id="preview" class="preview" aria-live="polite"></article>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const pageParams = new URLSearchParams(window.location.search);
+    const proofName = pageParams.get("proof") || "current";
+    const currentProofPollMs = 1000;
+
+    const sampleProof = String.raw`# Compactness and Local Compactness
+
+Let \(X\) and \(Y\) be topological spaces, and let \(f:X \to Y\) be a homeomorphism.
+
+## Compactness
+
+We claim that
+
+\[
+X \text{ is compact} \iff Y \text{ is compact}.
+\]
+
+Suppose \(X\) is compact. Since \(f\) is continuous, the image \(f(X)=Y\) is compact.
+
+Conversely, suppose \(Y\) is compact. Since \(f^{-1}:Y \to X\) is continuous, the image
+
+\[
+f^{-1}(Y)=X
+\]
+
+is compact.
+
+Therefore compactness is preserved by homeomorphism.
+
+## Local Compactness
+
+Assume \(X\) is locally compact. Let \(y \in Y\), and set \(x=f^{-1}(y)\). Since \(X\) is locally compact, there is a compact neighborhood \(K\) of \(x\).
+
+Because \(f\) is a homeomorphism, \(f(K)\) is compact and is a neighborhood of \(y\). Hence \(Y\) is locally compact.
+
+The reverse direction follows by applying the same argument to \(f^{-1}\). Thus
+
+\[
+X \text{ locally compact} \iff Y \text{ locally compact}.
+\]
+
+So compactness and local compactness are topological invariants.`;
+
+    const proofLibrary = {
+      sample: sampleProof
+    };
+
+    const editor = document.getElementById("editor");
+    const preview = document.getElementById("preview");
+    const workspace = document.getElementById("workspace");
+    const status = document.getElementById("status");
+    const renderStatus = document.getElementById("renderStatus");
+    const counter = document.getElementById("counter");
+    const sampleButton = document.getElementById("sampleButton");
+    const clearButton = document.getElementById("clearButton");
+    const copyButton = document.getElementById("copyButton");
+    const compactButton = document.getElementById("compactButton");
+    const layoutButton = document.getElementById("layoutButton");
+
+    let renderTimer = 0;
+    let statusTimer = 0;
+    let currentProofTimer = 0;
+    let currentProofLoading = false;
+    let currentProofSequence = 0;
+    let lastCurrentProofSource = null;
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function katexRenderer() {
+      if (window.katex) {
+        return window.katex;
+      }
+
+      if (typeof katex !== "undefined") {
+        return katex;
+      }
+
+      return null;
+    }
+
+    function renderMath(tex, displayMode, fallback) {
+      const renderer = katexRenderer();
+
+      if (!renderer || !renderer.renderToString) {
+        return escapeHtml(fallback);
+      }
+
+      try {
+        return renderer.renderToString(tex.trim(), {
+          displayMode: displayMode,
+          throwOnError: false,
+          strict: "ignore",
+          trust: false
+        });
+      } catch (error) {
+        return '<span class="math-error">' + escapeHtml(fallback) + "</span>";
+      }
+    }
+
+    function renderPlainText(value) {
+      return escapeHtml(value).replace(/`([^`]+)`/g, "<code>$1</code>");
+    }
+
+    function findInlineDollar(value, start) {
+      for (let index = start; index < value.length; index += 1) {
+        if (
+          value[index] === "$" &&
+          value[index - 1] !== "\\" &&
+          value[index + 1] !== "$" &&
+          value[index - 1] !== "$"
+        ) {
+          return index;
+        }
+      }
+
+      return -1;
+    }
+
+    function nextInlineDelimiter(value, start) {
+      const parenStart = value.indexOf("\\(", start);
+      const dollarStart = findInlineDollar(value, start);
+
+      if (parenStart === -1 && dollarStart === -1) {
+        return null;
+      }
+
+      if (dollarStart !== -1 && (parenStart === -1 || dollarStart < parenStart)) {
+        return { start: dollarStart, open: "$", close: "$" };
+      }
+
+      return { start: parenStart, open: "\\(", close: "\\)" };
+    }
+
+    function formatInline(value) {
+      let html = "";
+      let cursor = 0;
+
+      while (cursor < value.length) {
+        const delimiter = nextInlineDelimiter(value, cursor);
+
+        if (!delimiter) {
+          html += renderPlainText(value.slice(cursor));
+          break;
+        }
+
+        html += renderPlainText(value.slice(cursor, delimiter.start));
+
+        const closeIndex = delimiter.close === "$"
+          ? findInlineDollar(value, delimiter.start + 1)
+          : value.indexOf(delimiter.close, delimiter.start + delimiter.open.length);
+
+        if (closeIndex === -1) {
+          html += renderPlainText(value.slice(delimiter.start));
+          break;
+        }
+
+        const tex = value.slice(delimiter.start + delimiter.open.length, closeIndex);
+        const fallback = value.slice(delimiter.start, closeIndex + delimiter.close.length);
+        html += renderMath(tex, false, fallback);
+        cursor = closeIndex + delimiter.close.length;
+      }
+
+      return html;
+    }
+
+    function displayEndFor(line) {
+      const trimmed = line.trim();
+      const environment = trimmed.match(/^\\begin\{([^}]+)\}/);
+
+      if (trimmed.startsWith("$$") && !trimmed.slice(2).includes("$$")) {
+        return "$$";
+      }
+
+      if (trimmed.startsWith("\\[") && !trimmed.includes("\\]")) {
+        return "\\]";
+      }
+
+      if (environment && !trimmed.includes("\\end{" + environment[1] + "}")) {
+        return "\\end{" + environment[1] + "}";
+      }
+
+      return "";
+    }
+
+    function isSingleLineDisplay(line) {
+      const trimmed = line.trim();
+      return (
+        (trimmed.startsWith("$$") && trimmed.endsWith("$$") && trimmed.length > 4) ||
+        (trimmed.startsWith("\\[") && trimmed.endsWith("\\]") && trimmed.length > 4) ||
+        /^\\begin\{[^}]+\}[\s\S]*\\end\{[^}]+\}$/.test(trimmed)
+      );
+    }
+
+    function renderSource(source) {
+      const lines = source.replace(/\r\n?/g, "\n").split("\n");
+      const html = [];
+      let paragraph = [];
+      let listType = "";
+      let displayBuffer = null;
+      let displayEnd = "";
+
+      function closeParagraph() {
+        if (!paragraph.length) {
+          return;
+        }
+
+        html.push("<p>" + paragraph.join(" ") + "</p>");
+        paragraph = [];
+      }
+
+      function closeList() {
+        if (!listType) {
+          return;
+        }
+
+        html.push("</" + listType + ">");
+        listType = "";
+      }
+
+      function openList(type) {
+        if (listType === type) {
+          return;
+        }
+
+        closeList();
+        html.push("<" + type + ">");
+        listType = type;
+      }
+
+      function stripDisplayDelimiters(blockLines) {
+        const raw = blockLines.join("\n").trim();
+
+        if (raw.startsWith("$$") && raw.endsWith("$$") && raw.length > 4) {
+          return raw.slice(2, -2);
+        }
+
+        if (raw.startsWith("\\[") && raw.endsWith("\\]") && raw.length > 4) {
+          return raw.slice(2, -2);
+        }
+
+        return raw;
+      }
+
+      function addDisplayBlock(blockLines) {
+        const raw = blockLines.join("\n").trim();
+        const tex = stripDisplayDelimiters(blockLines);
+
+        closeParagraph();
+        closeList();
+        html.push('<div class="math-block">' + renderMath(tex, true, raw) + "</div>");
+      }
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (displayBuffer) {
+          displayBuffer.push(line);
+
+          if (trimmed.includes(displayEnd)) {
+            addDisplayBlock(displayBuffer);
+            displayBuffer = null;
+            displayEnd = "";
+          }
+
+          continue;
+        }
+
+        if (!trimmed) {
+          closeParagraph();
+          closeList();
+          continue;
+        }
+
+        const pendingDisplayEnd = displayEndFor(line);
+
+        if (pendingDisplayEnd) {
+          displayBuffer = [line];
+          displayEnd = pendingDisplayEnd;
+          continue;
+        }
+
+        if (isSingleLineDisplay(line)) {
+          addDisplayBlock([line]);
+          continue;
+        }
+
+        const heading = trimmed.match(/^(#{1,4})\s+(.+)$/);
+
+        if (heading) {
+          closeParagraph();
+          closeList();
+          const level = Math.min(heading[1].length + 1, 4);
+          html.push("<h" + level + ">" + formatInline(heading[2]) + "</h" + level + ">");
+          continue;
+        }
+
+        const unordered = line.match(/^\s*[-*]\s+(.+)$/);
+
+        if (unordered) {
+          closeParagraph();
+          openList("ul");
+          html.push("<li>" + formatInline(unordered[1]) + "</li>");
+          continue;
+        }
+
+        const ordered = line.match(/^\s*\d+\.\s+(.+)$/);
+
+        if (ordered) {
+          closeParagraph();
+          openList("ol");
+          html.push("<li>" + formatInline(ordered[1]) + "</li>");
+          continue;
+        }
+
+        const quote = trimmed.match(/^>\s?(.+)$/);
+
+        if (quote) {
+          closeParagraph();
+          closeList();
+          html.push("<blockquote><p>" + formatInline(quote[1]) + "</p></blockquote>");
+          continue;
+        }
+
+        closeList();
+        paragraph.push(formatInline(trimmed));
+      }
+
+      if (displayBuffer) {
+        addDisplayBlock(displayBuffer);
+      }
+
+      closeParagraph();
+      closeList();
+
+      if (!html.length) {
+        return '<div class="empty">Preview is empty</div>';
+      }
+
+      return html.join("\n");
+    }
+
+    function updateCounter() {
+      const count = editor.value.length;
+      counter.textContent = count + (count === 1 ? " char" : " chars");
+    }
+
+    function setStatus(message, isError) {
+      status.textContent = message;
+      status.classList.toggle("is-error", Boolean(isError));
+    }
+
+    function setRenderStatus(message) {
+      renderStatus.textContent = message;
+    }
+
+    function isCurrentProofView() {
+      return proofName === "current";
+    }
+
+    function currentProofScriptSrc() {
+      currentProofSequence += 1;
+      return "./current-proof.js?proofPoll=" + Date.now() + "-" + currentProofSequence;
+    }
+
+    function loadCurrentProofSlot() {
+      if (!isCurrentProofView() || currentProofLoading) {
+        return Promise.resolve(null);
+      }
+
+      currentProofLoading = true;
+
+      return new Promise(function (resolve) {
+        const script = document.createElement("script");
+        let settled = false;
+        let timeout = 0;
+
+        function finish(source) {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          currentProofLoading = false;
+          window.clearTimeout(timeout);
+          script.remove();
+          resolve(source);
+        }
+
+        script.async = true;
+        script.src = currentProofScriptSrc();
+        script.onload = function () {
+          const source = typeof window.__proofPreviewCurrentProof === "string"
+            ? window.__proofPreviewCurrentProof
+            : "";
+          finish(source);
+        };
+        script.onerror = function () {
+          setStatus("Current proof file could not be loaded", true);
+          finish("");
+        };
+
+        timeout = window.setTimeout(function () {
+          setStatus("Current proof file could not be loaded", true);
+          finish("");
+        }, 1200);
+
+        document.head.appendChild(script);
+      });
+    }
+
+    function applyCurrentProof(source) {
+      if (!isCurrentProofView() || typeof source !== "string") {
+        return;
+      }
+
+      if (source === lastCurrentProofSource && editor.value === source) {
+        return;
+      }
+
+      lastCurrentProofSource = source;
+      editor.value = source;
+      typesetPreview();
+    }
+
+    function refreshCurrentProofSlot() {
+      loadCurrentProofSlot().then(function (source) {
+        if (typeof source === "string") {
+          applyCurrentProof(source);
+        }
+      });
+    }
+
+    function startCurrentProofWatcher() {
+      if (!isCurrentProofView() || currentProofTimer) {
+        return;
+      }
+
+      currentProofTimer = window.setInterval(refreshCurrentProofSlot, currentProofPollMs);
+      window.addEventListener("focus", refreshCurrentProofSlot);
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) {
+          refreshCurrentProofSlot();
+        }
+      });
+    }
+
+    function typesetPreview() {
+      preview.innerHTML = renderSource(editor.value);
+      updateCounter();
+
+      if (katexRenderer()) {
+        setRenderStatus("Ready");
+        setStatus("KaTeX ready", false);
+      } else if (window.__proofPreviewKatexFailed) {
+        setRenderStatus("Text only");
+        setStatus("KaTeX unavailable at ./vendor/katex/katex.min.js", true);
+      } else {
+        setRenderStatus("Waiting");
+      }
+    }
+
+    function scheduleRender() {
+      window.clearTimeout(renderTimer);
+      renderTimer = window.setTimeout(typesetPreview, 120);
+    }
+
+    function loadInitialState() {
+      const hasCurrentProof = isCurrentProofView() &&
+        typeof window.__proofPreviewCurrentProof === "string";
+      const requestedProof = isCurrentProofView()
+        ? (hasCurrentProof ? window.__proofPreviewCurrentProof : "")
+        : proofLibrary[proofName];
+
+      editor.value = isCurrentProofView()
+        ? requestedProof
+        : requestedProof !== undefined ? requestedProof : sampleProof;
+
+      if (isCurrentProofView()) {
+        lastCurrentProofSource = requestedProof;
+      }
+
+      if (pageParams.get("view") !== "small") {
+        document.body.classList.add("full-screen");
+      } else if (pageParams.get("view") === "small") {
+        document.body.classList.add("small-screen");
+        compactButton.setAttribute("aria-pressed", "true");
+        compactButton.textContent = "Full View";
+      }
+
+      typesetPreview();
+      startCurrentProofWatcher();
+    }
+
+    function restoreSample() {
+      editor.value = sampleProof;
+      editor.focus();
+      scheduleRender();
+    }
+
+    function clearEditor() {
+      editor.value = "";
+      editor.focus();
+      scheduleRender();
+    }
+
+    async function copySource() {
+      const source = editor.value;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(source);
+        } else {
+          const helper = document.createElement("textarea");
+          helper.value = source;
+          helper.setAttribute("readonly", "");
+          helper.style.position = "fixed";
+          helper.style.left = "-9999px";
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand("copy");
+          document.body.removeChild(helper);
+        }
+
+        const previous = copyButton.textContent;
+        copyButton.textContent = "Copied";
+        window.clearTimeout(statusTimer);
+        statusTimer = window.setTimeout(function () {
+          copyButton.textContent = previous;
+        }, 1200);
+      } catch (error) {
+        setStatus("Copy failed", true);
+      }
+    }
+
+    function toggleLayout() {
+      const isWide = workspace.classList.toggle("preview-wide");
+      layoutButton.setAttribute("aria-pressed", String(isWide));
+    }
+
+    function toggleSmallScreen() {
+      const isSmall = document.body.classList.toggle("small-screen");
+      compactButton.setAttribute("aria-pressed", String(isSmall));
+      compactButton.textContent = isSmall ? "Full View" : "Small Screen";
+    }
+
+    editor.addEventListener("input", scheduleRender);
+    sampleButton.addEventListener("click", restoreSample);
+    clearButton.addEventListener("click", clearEditor);
+    copyButton.addEventListener("click", copySource);
+    compactButton.addEventListener("click", toggleSmallScreen);
+    layoutButton.addEventListener("click", toggleLayout);
+
+    window.addEventListener("load", function () {
+      window.setTimeout(function () {
+        if (!katexRenderer()) {
+          setStatus("KaTeX unavailable at ./vendor/katex/katex.min.js", true);
+          setRenderStatus("Text only");
+        }
+      }, 600);
+    });
+
+    if (isCurrentProofView()) {
+      loadCurrentProofSlot().then(function (source) {
+        if (typeof source === "string") {
+          window.__proofPreviewCurrentProof = source;
+        }
+        loadInitialState();
+      });
+    } else {
+      loadInitialState();
+    }
+  </script>
+</body>
+</html>
