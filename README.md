@@ -1,8 +1,16 @@
-# Proof Preview
+# Proof Preview Quick Start
 
-Offline LaTeX proof preview for studying math with Codex.
+Proof Preview is a local, offline LaTeX proof viewer for fast iteration on math notes and arguments. It is useful when you want a simple way to preview proofs without depending on an online service.
 
-The app is a local HTML viewer with bundled KaTeX. Codex writes the latest proof into `current-proof.js`, and the terminal command opens or prints the viewer link.
+## Prerequisites
+
+- Linux-like environment
+- `bash`
+- `node`
+- a browser
+- `xdg-open`
+
+The installer links `proof-preview` into `~/.local/bin`, so that directory should be on your `PATH`.
 
 ## Install
 
@@ -12,23 +20,9 @@ From this project directory:
 ./install.sh
 ```
 
-This installs:
+## Try it now
 
-- `proof-preview` command at `~/.local/bin/proof-preview`
-- a project-local `current-proof.js` proof slot if it does not already exist
-
-The commands open:
-
-```text
-file:///path/to/proof-preview/index.html
-```
-
-The bare `index.html` page opens the current proof in full view. An open viewer tab watches `current-proof.js` and refreshes itself when the command writes a new proof.
-The viewer does not store proofs or layout state in browser local storage.
-
-## Usage
-
-Open the current proof:
+Open the current proof viewer:
 
 ```bash
 proof-preview
@@ -40,45 +34,16 @@ Save a proof from a file and open it:
 proof-preview proof.md
 ```
 
-Save proof text from stdin without opening the browser:
+Save proof text from stdin and print the viewer link without opening the browser:
 
 ```bash
 printf '# Proof\n\nLet \\(X\\) be compact.' | proof-preview --no-open
 ```
 
-Use the compact narrow view instead of full-screen:
+## What to expect
 
-```bash
-proof-preview --small proof.md
-```
+The viewer opens as a local `file://` page. If you keep the tab open, it refreshes when the current proof changes. Proof content stays local to your machine.
 
-Clear the current proof:
+## Full docs
 
-```bash
-proof-preview --cleanup
-```
-
-Any open viewer tab clears itself automatically after the proof slot is cleared.
-
-## Codex Instruction
-
-Give Codex this instruction when you want proofs to show in the viewer:
-
-```text
-When you give me a math proof, save the proof with:
-proof-preview --no-open
-Then give me the printed file:// viewer link.
-Overwrite the current proof instead of keeping history.
-```
-
-Codex can write directly to this viewer as long as `proof-preview` is on `PATH`. The installer creates that command through `~/.local/bin`, which is on the default PATH for this machine.
-
-## Files
-
-- `index.html`: editor and proof viewer
-- `bin/proof-preview`: command-line helper
-- `current-proof.js`: generated latest proof slot
-- `vendor/katex/`: bundled offline math renderer
-- `install.sh`: per-user installer for the command links
-
-`current-proof.js` is ignored by Git because it is personal generated state.
+For the full usage reference, see [here](WHY_PROOF_PREVIEW_ZH.md).
