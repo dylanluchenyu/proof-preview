@@ -44,6 +44,17 @@ printf '# Proof\n\nLet \\(X\\) be compact.' | proof-preview --no-open
 
 The viewer opens as a local `file://` page. If you keep the tab open, it refreshes when the current proof changes. Proof content stays local to your machine.
 
+## Codex Instruction
+
+Give Codex this instruction when you want proofs to show in the viewer:
+
+```text
+When you give me a math proof, save the proof with:
+proof-preview --no-open
+Then give me the printed file:// viewer link.
+Overwrite the current proof instead of keeping history.
+```
+
 ## Full docs
 
 For the full usage reference, see [here](WHY_PROOF_PREVIEW_ZH.md).
