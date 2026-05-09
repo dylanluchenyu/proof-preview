@@ -40,9 +40,23 @@ Save proof text from stdin and print the viewer link without opening the browser
 printf '# Proof\n\nLet \\(X\\) be compact.' | proof-preview --no-open
 ```
 
+LaTeX commands beginning with backslashes are preserved literally when you pass content by file or stdin, for example:
+
+```bash
+cat <<'EOF' | proof-preview --no-open
+# Span bound
+
+$$
+\rho^\pi \ge \rho^\star - C \sqrt{\frac{1}{n}}
+$$
+EOF
+```
+
 ## What to expect
 
 The viewer opens as a local `file://` page. If you keep the tab open, it refreshes when the current proof changes. Proof content stays local to your machine.
+
+Avoid shell ANSI-C quoting such as `$'...'` for LaTeX-heavy text. Shell escape expansion can inject hidden control characters before `proof-preview` receives the text, which will then render incorrectly in the browser.
 
 ## Codex Instruction
 

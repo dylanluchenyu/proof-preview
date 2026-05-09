@@ -471,6 +471,7 @@
     const pageParams = new URLSearchParams(window.location.search);
     const proofName = pageParams.get("proof") || "current";
     const currentProofPollMs = 1000;
+    const currentProofErrorSource = "# Current Proof Load Error\n\nThe viewer could not read `current-proof.js` as proof text.\n\nThis usually means the generated file contains malformed JavaScript or shell-escaped control characters.\n\nPreferred save paths:\n- `proof-preview proof.md`\n- `cat proof.md | proof-preview --no-open`\n";
 
     const sampleProof = String.raw`# Compactness and Local Compactness
 
@@ -867,17 +868,22 @@ So compactness and local compactness are topological invariants.`;
         script.onload = function () {
           const source = typeof window.__proofPreviewCurrentProof === "string"
             ? window.__proofPreviewCurrentProof
-            : "";
+            : null;
+          if (source === null) {
+            setStatus("Current proof file loaded but did not define proof text", true);
+            finish(currentProofErrorSource);
+            return;
+          }
           finish(source);
         };
         script.onerror = function () {
           setStatus("Current proof file could not be loaded", true);
-          finish("");
+          finish(currentProofErrorSource);
         };
 
         timeout = window.setTimeout(function () {
           setStatus("Current proof file could not be loaded", true);
-          finish("");
+          finish(currentProofErrorSource);
         }, 1200);
 
         document.head.appendChild(script);
